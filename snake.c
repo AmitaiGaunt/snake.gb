@@ -9,15 +9,16 @@
 
 #define sqr(n) n*n
 #define cub(n) n*n*n
+#define collide(a, b) (pos[a][0] == pos[b][0] && pos[a][1] == pos[b][1])
+
 
 #define MAX_SPRITES 40
-#define LENGTH_INIT 5
+#define LENGTH_INIT 3
 #define UP 2
 #define DOWN 3
 #define LEFT 0
 #define RIGHT 1
 #define APPLE 0
-
 
 void init();
 void checkInput();
@@ -26,8 +27,6 @@ void move();
 void selfCollision();
 void make_apple();
 void check_apple();
-
-// The player array will hold the player's position as X ([0]) and Y ([1])
 
 int i;
 int j;
@@ -64,11 +63,9 @@ void init() {
 
 	DISPLAY_ON;						// Turn on the display
 
-	printf("");
-
 	waitpad(0xFF);
 	waitpadup();
-	initrand(DIV_REG);
+	initrand(clock());
 
 	// Load the the 'sprites' tiles into sprite memory
 	set_sprite_data(0, 1, sprites);
@@ -82,7 +79,7 @@ void init() {
 
 	front[0] = 80;
 	front[1] = 72;
-	tail = 0;
+	tail = 1;
 	direction = 0;
 	loss = 0;
 
@@ -188,27 +185,23 @@ void selfCollision() {
 	}
 
 	if (collisionCount > 1) {
-		printf("ded");
+		puts("ded");
 		while (1);
 	}
 }
 
 void make_apple() {
-	while (clock() == 0) {
-
-	}
-	i = sqr(clock());
+	i = rand();
 	i = i % 19;
 	i = (i + 2) * 8;
-	j = cub(clock());
+	j = rand();
 	j = j % 17;
 	j = (j + 2) * 8;
 	move_object(0, i, j);
 }
 
 void check_apple() {
-	if (pos[APPLE][0] == pos[head][0] && pos[APPLE][1] == pos[head][1]) {
-		printf("h");
+	if (collide(APPLE, head)) {
 		make_apple();
 		length++;
 	}
