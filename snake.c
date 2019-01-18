@@ -4,13 +4,8 @@
 #include <rand.h>
 #include "sprites.c"
 
-#define int UINT8
-#define bool UINT8
-
-#define sqr(n) n*n
-#define cub(n) n*n*n
-#define collide(a, b) (pos[a][0] == pos[b][0] && pos[a][1] == pos[b][1])
-
+#define INT UINT8
+#define BOOL UINT8
 
 #define MAX_SPRITES 40
 #define LENGTH_INIT 3
@@ -20,93 +15,30 @@
 #define RIGHT 1
 #define APPLE 0
 
-void init();
-void checkInput();
-void updateSwitches();
-void move();
-void selfCollision();
-void make_apple();
-void check_apple();
+INT i;
+INT j;
+INT pos[MAX_SPRITES][2];
+INT front[2];
+INT head;
+INT tail;
+INT direction;
+INT newDirection;
+INT length;
+BOOL loss;
 
-int i;
-int j;
-int pos[MAX_SPRITES][2];
-int front[2];
-int head;
-int tail;
-int direction;
-int newDirection;
-int length;
-bool loss;
+#define COLLIDE(a, b) (pos[a][0] == pos[b][0] && pos[a][1] == pos[b][1])
 
-void main() {
-
-	init();
-
-	while (!loss) {
-		checkInput();				// Check for user input (and act on it)
-		if (clock() % 8 == 0) {
-			direction = newDirection;
-			move();
-			selfCollision();
-			check_apple();
-		}
-		updateSwitches();			// Make sure the SHOW_SPRITES and SHOW_BKG switches are on each loop
-		wait_vbl_done();			// Wait until VBLANK to avoid corrupting memory
-
-
+#define MOVE_OBJECT(id, x, y) {\
+		move_sprite(id, x, y); \
+		pos[id][0] = x; \
+		pos[id][1] = y; \
 	}
 
-}
-
-void init() {
-
-	DISPLAY_ON;						// Turn on the display
-
-	waitpad(0xFF);
-	waitpadup();
-	initrand(clock());
-
-	// Load the the 'sprites' tiles into sprite memory
-	set_sprite_data(0, 1, sprites);
-
-	length = LENGTH_INIT;
-
-	// Set the first movable sprite (0) to be the first tile in the sprite memory (0)
-	for (i = 1; i <= length; i++) {
-		set_sprite_tile(i, 0);
+#define UPDATE_SWITCHES {\
+		HIDE_WIN;\
+		SHOW_SPRITES;\
+		SHOW_BKG;\
 	}
-
-	front[0] = 80;
-	front[1] = 72;
-	tail = 1;
-	direction = 0;
-	loss = 0;
-
-	for (i = 0; i < MAX_SPRITES; ++i) {
-		for (j = 0; j < 2; ++j) {
-			pos[i][j] = 0;
-		}
-	}
-
-	set_sprite_tile(0, 0x19);
-	make_apple();
-
-}
-
-void updateSwitches() {
-
-	HIDE_WIN;
-	SHOW_SPRITES;
-	SHOW_BKG;
-
-}
-
-void move_object(UINT8 id, UINT8 x, UINT8 y) {
-	move_sprite(id, x, y);
-	pos[id][0] = x;
-	pos[id][1] = y;
-}
 
 void checkInput() {
 
@@ -166,28 +98,17 @@ void move() {
 
 	head = tail;
 	tail = (tail % length) + 1;
-	move_object(tail, front[0], front[1]);
+	MOVE_OBJECT(head, front[0], front[1]);
 
 }
 
-UINT8 collisionCount;
-
-void selfCollision() {
-	collisionCount = 0;
-	for (i = 1; i < length; i++) {
-		if (pos[i][0] == front[0] && pos[i][1] == front[1] && i != head) { //If a sprite of the snake body is at the same position as the front sprite die
-
-			//if () {
-			++collisionCount;
-			//}
-
+BOOL collides_with_snake(INT id) {
+	for (i = 1; i <= length; i++) {
+		if (COLLIDE(id, i) && i != id) {
+			return 1;
 		}
 	}
-
-	if (collisionCount > 1) {
-		puts("ded");
-		while (1);
-	}
+	return 0;
 }
 
 void make_apple() {
@@ -197,12 +118,70 @@ void make_apple() {
 	j = rand();
 	j = j % 17;
 	j = (j + 2) * 8;
-	move_object(0, i, j);
+	MOVE_OBJECT(0, i, j);
 }
 
 void check_apple() {
-	if (collide(APPLE, head)) {
+	if (COLLIDE(APPLE, head)) {
 		make_apple();
 		length++;
 	}
+}
+
+void init() {
+
+	DISPLAY_ON;						// Turn on the display
+
+	waitpad(0xFF);
+	waitpadup();
+	initrand(clock());
+
+	// Load the the 'sprites' tiles into sprite memory
+	set_sprite_data(0, 1, sprites);
+
+	length = LENGTH_INIT;
+
+	// Set the first movable sprite (0) to be the first tile in the sprite memory (0)
+	for (i = 1; i <= length; i++) {
+		set_sprite_tile(i, 0);
+	}
+
+	front[0] = 80;
+	front[1] = 72;
+	tail = 1;
+	direction = 0;
+	loss = 0;
+
+	for (i = 0; i < MAX_SPRITES; ++i) {
+		for (j = 0; j < 2; ++j) {
+			pos[i][j] = 0;
+		}
+	}
+
+	set_sprite_tile(0, 0x19);
+	make_apple();
+
+}
+
+void main() {
+
+	init();
+
+	while (!loss) {
+		checkInput();				// Check for user input (and act on it)
+		if (clock() % 8 == 0) {
+			direction = newDirection;
+			move();
+			if (collides_with_snake(head)) {
+				puts("ded");
+				return;
+			}
+			check_apple();
+		}
+		UPDATE_SWITCHES;			// Make sure the SHOW_SPRITES and SHOW_BKG switches are on each loop
+		wait_vbl_done();			// Wait until VBLANK to avoid corrupting memory
+
+
+	}
+
 }
