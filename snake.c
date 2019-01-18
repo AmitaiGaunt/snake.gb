@@ -1,35 +1,44 @@
 #include <gb/gb.h>
 #include <time.h>
 #include <stdio.h>
+#include <rand.h>
 #include "sprites.c"
 
+#define int UINT8
+#define bool UINT8
+
+#define sqr(n) n*n
+#define cub(n) n*n*n
+
 #define MAX_SPRITES 40
-
 #define LENGTH_INIT 5
-
 #define UP 2
 #define DOWN 3
 #define LEFT 0
 #define RIGHT 1
+#define APPLE 0
+
 
 void init();
 void checkInput();
 void updateSwitches();
 void move();
 void selfCollision();
+void make_apple();
+void check_apple();
 
 // The player array will hold the player's position as X ([0]) and Y ([1])
 
-UINT8 i;
-UINT8 j;
-UINT8 pos[MAX_SPRITES][2];
-UINT8 front[2];
-UINT8 head[2];
-UINT8 direction;
-UINT8 newDirection;
-UINT8 length;
-UINT8 tail;
-UINT8 loss;
+int i;
+int j;
+int pos[MAX_SPRITES][2];
+int front[2];
+int head;
+int tail;
+int direction;
+int newDirection;
+int length;
+bool loss;
 
 void main() {
 
@@ -41,6 +50,7 @@ void main() {
 			direction = newDirection;
 			move();
 			selfCollision();
+			check_apple();
 		}
 		updateSwitches();			// Make sure the SHOW_SPRITES and SHOW_BKG switches are on each loop
 		wait_vbl_done();			// Wait until VBLANK to avoid corrupting memory
@@ -53,6 +63,12 @@ void main() {
 void init() {
 
 	DISPLAY_ON;						// Turn on the display
+
+	printf("");
+
+	waitpad(0xFF);
+	waitpadup();
+	initrand(DIV_REG);
 
 	// Load the the 'sprites' tiles into sprite memory
 	set_sprite_data(0, 1, sprites);
@@ -75,6 +91,10 @@ void init() {
 			pos[i][j] = 0;
 		}
 	}
+
+	set_sprite_tile(0, 0x19);
+	make_apple();
+
 }
 
 void updateSwitches() {
@@ -83,6 +103,12 @@ void updateSwitches() {
 	SHOW_SPRITES;
 	SHOW_BKG;
 
+}
+
+void move_object(UINT8 id, UINT8 x, UINT8 y) {
+	move_sprite(id, x, y);
+	pos[id][0] = x;
+	pos[id][1] = y;
 }
 
 void checkInput() {
@@ -140,17 +166,10 @@ void move() {
 		front[1] += 8;
 		break;
 	}
-	//pos[tail][0] = pos[tail - 1][0];
-	//pos[tail][1] = pos[tail - 1][1];
 
+	head = tail;
 	tail = (tail % length) + 1;
-
-	pos[tail][0] = front[0];
-	pos[tail][1] = front[1];
-	move_sprite(tail, front[0], front[1]);
-
-
-
+	move_object(tail, front[0], front[1]);
 
 }
 
@@ -158,8 +177,8 @@ UINT8 collisionCount;
 
 void selfCollision() {
 	collisionCount = 0;
-	for (i = 0; i < length; ++i) {
-		if (pos[i][0] == front[0] && pos[i][1] == front[1]) { //If a sprite of the snake body is at the same position as the front sprite die
+	for (i = 1; i < length; i++) {
+		if (pos[i][0] == front[0] && pos[i][1] == front[1] && i != head) { //If a sprite of the snake body is at the same position as the front sprite die
 
 			//if () {
 			++collisionCount;
@@ -169,6 +188,28 @@ void selfCollision() {
 	}
 
 	if (collisionCount > 1) {
+		printf("ded");
 		while (1);
+	}
+}
+
+void make_apple() {
+	while (clock() == 0) {
+
+	}
+	i = sqr(clock());
+	i = i % 19;
+	i = (i + 2) * 8;
+	j = cub(clock());
+	j = j % 17;
+	j = (j + 2) * 8;
+	move_object(0, i, j);
+}
+
+void check_apple() {
+	if (pos[APPLE][0] == pos[head][0] && pos[APPLE][1] == pos[head][1]) {
+		printf("h");
+		make_apple();
+		length++;
 	}
 }
