@@ -8,9 +8,9 @@
 #define BOOL UINT8
 
 #define MAX_SPRITES 40
+#define LENGTH_INIT 2
 #define WIDTH 10
 #define HEIGHT 18
-#define LENGTH_INIT 3
 #define X 0
 #define Y 1
 #define APPLE 0
@@ -21,21 +21,35 @@
 
 INT i;
 INT j;
+char buffer[8];
 INT pos[MAX_SPRITES][2];
 INT head;
 INT tail;
 INT direction;
 INT new_direction;
 INT length;
-BOOL loss;
+INT level;
 
 #define P(button) (joypad() & button)
 
-#define GET_INPUT {new_direction = P(J_UP) ? UP \
-		: P(J_LEFT) ? LEFT \
-		: P(J_RIGHT) ? RIGHT \
-		: P(J_DOWN) ? DOWN \
-		: new_direction;}
+#define CONFIRM { \
+		waitpadup(); \
+		while (!P(J_START) && !P(J_A)); \
+		waitpadup(); \
+	}
+
+void get_input() {
+
+	if (P(J_START)) {
+		CONFIRM;
+	}
+
+	new_direction = P(J_UP) ? UP
+		: P(J_LEFT) ? LEFT
+		: P(J_RIGHT) ? RIGHT
+		: P(J_DOWN) ? DOWN
+		: new_direction;
+}
 
 #define MOVE_OBJECT(id, x, y) {\
 		pos[id][X] = x; \
@@ -67,6 +81,10 @@ BOOL collides_with_snake(INT id) {
 		length++; \
 	}
 
+#define LEVEL_UP { \
+		++level; \
+	}
+
 #define DED (collides_with_snake(head) || pos[head][X] >= WIDTH || pos[head][Y] >= HEIGHT)
 
 #define UPDATE_SWITCHES {\
@@ -75,17 +93,21 @@ BOOL collides_with_snake(INT id) {
 		SHOW_BKG; \
 	}
 
-
 void init() {
 
 	DISPLAY_ON;
 
-	for (i = 0; i < HEIGHT; i++) {
+	CONFIRM;
+
+	for (i = 0; i < MAX_SPRITES; i++) {
+		MOVE_OBJECT(i, -1, -1);
+	}
+
+	printf("          %c\n", level + 48);
+	for (i = 0; i < HEIGHT - 2; i++) {
 		puts("          |");
 	}
 
-	waitpad(0xFF);
-	waitpadup();
 	initrand(clock());
 
 	// Load the the 'sprites' tiles into sprite memory
@@ -134,20 +156,31 @@ void move() {
 
 void main() {
 
-	init();
+	level = 1;
 
-	while (!loss) {
-		GET_INPUT;
-		if (clock() % 8 == 0) {
-			move();
-			if (DED) {
-				puts("ded");
-				return;
+	while (1) {
+
+		init();
+
+		while (1) {
+			get_input();
+			if (clock() % (9 - level) == 0) {
+				move();
+				if (length == MAX_SPRITES) {
+					LEVEL_UP;
+					break;
+				}
+				if (DED) {
+					level = 1;
+					puts("ded");
+					break;
+				}
+				CHECK_APPLE;
 			}
-			CHECK_APPLE;
+			UPDATE_SWITCHES;
+			wait_vbl_done();
 		}
-		UPDATE_SWITCHES;
-		wait_vbl_done();
+
 	}
 
 }
