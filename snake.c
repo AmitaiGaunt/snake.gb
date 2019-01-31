@@ -4,9 +4,6 @@
 #include <rand.h>
 #include "sprites.c"
 
-#define INT UINT8
-#define BOOL UINT8
-
 #define MAX_SPRITES 40
 #define LENGTH_INIT 2
 #define WIDTH 10
@@ -19,16 +16,15 @@
 #define RIGHT 2
 #define DOWN 3
 
-INT i;
-INT j;
-char buffer[8];
-INT pos[MAX_SPRITES][2];
-INT head;
-INT tail;
-INT direction;
-INT new_direction;
-INT length;
-INT level;
+UINT8 i;
+UINT8 j;
+UINT8 pos[MAX_SPRITES][2];
+UINT8 head;
+UINT8 tail;
+UINT8 direction;
+UINT8 new_direction;
+UINT8 length;
+UINT8 level;
 
 #define P(button) (joypad() & button)
 
@@ -59,7 +55,7 @@ void get_input() {
 
 #define COLLIDE(a, b) (pos[a][X] == pos[b][X] && pos[a][Y] == pos[b][Y])
 
-BOOL collides_with_snake(INT id) {
+UINT8 collides_with_snake(UINT8 id) {
 	for (i = 1; i <= length; i++) {
 		if (COLLIDE(id, i) && i != id) {
 			return 1;
@@ -68,17 +64,19 @@ BOOL collides_with_snake(INT id) {
 	return 0;
 }
 
-#define MAKE_APPLE do { \
-		i = rand(); \
-		i = i % WIDTH; \
-		j = rand(); \
-		j = j % HEIGHT; \
-		MOVE_OBJECT(APPLE, i, j); \
+void make_apple() {
+	do {
+		i = rand();
+		i = i % WIDTH;
+		j = rand();
+		j = j % HEIGHT;
+		MOVE_OBJECT(APPLE, i, j);
 	} while (collides_with_snake(APPLE));
+}
 
 #define CHECK_APPLE if (COLLIDE(APPLE, head)) { \
-		MAKE_APPLE; \
-		length++; \
+		make_apple(); \
+		length += 2; \
 	}
 
 #define LEVEL_UP { \
@@ -114,7 +112,7 @@ void init() {
 	set_sprite_data(0, 1, sprites);
 
 	set_sprite_tile(APPLE, 0x19);
-	MAKE_APPLE;
+	make_apple();
 	length = LENGTH_INIT;
 	tail = 2;
 	head = 1;
